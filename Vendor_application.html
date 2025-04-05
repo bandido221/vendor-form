@@ -2,75 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Vendor Application</title>
+  <title>FairQuest Vendor Application</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+    }
+    h1 {
+      text-align: center;
+      color: #3a3a3a;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input, textarea {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 16px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2c3e9c;
+    }
+    .fair-section {
+      border: 1px solid #ccc;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      background: #fafafa;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
   <h1>Vendor Application Form</h1>
   <form id="applicationForm">
-    <label for="name">Name:</label>
-    <input type="text" id="name" required />
+    <label for="vendorName">Vendor Name:</label>
+    <input type="text" id="vendorName" required />
 
-    <label for="description">Description:</label>
-    <textarea id="description" required></textarea>
+    <label for="vendorBio">Quick Bio:</label>
+    <textarea id="vendorBio" rows="3" required></textarea>
 
-    <label for="photoUrl">Photo URL:</label>
-    <input type="url" id="photoUrl" />
+    <label for="vendorType">Type of Vendor:</label>
+    <input type="text" id="vendorType" required placeholder="e.g., Food, Craft, Performer" />
 
-    <label for="vendorType">Type:</label>
-    <input type="text" id="vendorType" required placeholder="e.g., Food, Craft" />
+    <label for="contactName">Booth Contact Person:</label>
+    <input type="text" id="contactName" required />
 
     <label for="contactEmail">Contact Email:</label>
     <input type="email" id="contactEmail" required />
 
-    <!-- Optionally, let them select a fair/dates -->
-    <label for="fairId">Fair ID (optional):</label>
-    <input type="number" id="fairId" />
+    <label for="fairSearch">Search Fairs (name or state):</label>
+    <input type="text" id="fairSearch" placeholder="Start typing to find fairs..." />
 
-    <label for="appliedDate">Applied Date (optional):</label>
-    <input type="date" id="appliedDate" />
+    <div id="fairsContainer"></div>
 
     <button type="submit">Submit Application</button>
   </form>
   <div id="message"></div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <script>
     const supabase = window.supabase.createClient(
       'https://awtbjuiqgtdydsqzimul.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3dGJqdWlxZ3RkeWRzcXppbXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0OTY4MDgsImV4cCI6MjA1NzA3MjgwOH0.ES0B3O_M0dHaMHMutpkXvThMVMwIUxPqL1cvM1J2kUQ'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...YOUR_KEY...'
     );
-    
+
+    const stateMap = {
+      'iowa': 'ia', 'texas': 'tx', 'california': 'ca', 'florida': 'fl',
+      'new york': 'ny', 'illinois': 'il', 'georgia': 'ga', 'ohio': 'oh',
+      'michigan': 'mi', 'pennsylvania': 'pa', 'wisconsin': 'wi', 'minnesota': 'mn'
+    };
+
+    let allFairs = [];
+
+    async function loadFairs() {
+      const { data, error } = await supabase
+        .from('renaissance_fairs')
+        .select('id, name, state, start_date, end_date')
+        .order('name', { ascending: true });
+
+      if (!error) allFairs = data;
+    }
+
+    function displayFairs(fairs) {
+      const container = document.getElementById('fairsContainer');
+      container.innerHTML = '';
+
+      fairs.forEach(fair => {
+        if (!fair.start_date || !fair.end_date) return;
+
+        const div = document.createElement('div');
+        div.className = 'fair-section';
+        const start = new Date(fair.start_date);
+        const end = new Date(fair.end_date);
+        const label = `${fair.name} (${fair.state}) — ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`;
+
+        div.innerHTML = `
+          <label>
+            <input type="checkbox" name="fair_${fair.id}" value="${fair.id}" />
+            ${label}
+          </label>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('fairSearch').addEventListener('input', () => {
+      const input = document.getElementById('fairSearch').value.toLowerCase();
+      if (!input) {
+        document.getElementById('fairsContainer').innerHTML = '';
+        return;
+      }
+
+      const normalizedState = stateMap[input];
+      const filtered = allFairs.filter(f =>
+        (f.name && f.name.toLowerCase().includes(input)) ||
+        (f.state && f.state.toLowerCase().includes(input)) ||
+        (normalizedState && f.state.toLowerCase() === normalizedState)
+      );
+
+      displayFairs(filtered);
+    });
+
     document.getElementById('applicationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('name').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const photoUrl = document.getElementById('photoUrl').value.trim();
-      const vendorType = document.getElementById('vendorType').value.trim();
-      const contactEmail = document.getElementById('contactEmail').value.trim();
-      const fairId = document.getElementById('fairId').value || null;
-      const appliedDate = document.getElementById('appliedDate').value || null;
-      
-      const { data, error } = await supabase
+
+      const name = document.getElementById('vendorName').value;
+      const description = document.getElementById('vendorBio').value;
+      const vendorType = document.getElementById('vendorType').value;
+      const contactName = document.getElementById('contactName').value;
+      const contactEmail = document.getElementById('contactEmail').value;
+      const checkedFairs = [...document.querySelectorAll('input[type="checkbox"]:checked')].map(cb => parseInt(cb.value));
+
+      const { error } = await supabase
         .from('vendor_applications')
         .insert([{
           name,
           description,
-          photo_url: photoUrl,
           vendor_type: vendorType,
+          contact_name: contactName,
           contact_email: contactEmail,
-          fair_id: fairId,
-          applied_date: appliedDate
+          applied_fairs: checkedFairs
         }]);
-      
-      const msgDiv = document.getElementById('message');
+
+      const msg = document.getElementById('message');
       if (error) {
-        msgDiv.textContent = "Error submitting application: " + error.message;
-        msgDiv.style.color = "red";
+        msg.textContent = "❌ " + error.message;
+        msg.style.color = "red";
       } else {
-        msgDiv.textContent = "Application submitted successfully! It is now pending review.";
-        msgDiv.style.color = "green";
+        msg.textContent = "✅ Application submitted successfully!";
+        msg.style.color = "green";
+        document.getElementById('applicationForm').reset();
+        document.getElementById('fairsContainer').innerHTML = '';
       }
     });
+
+    loadFairs();
   </script>
 </body>
 </html>
