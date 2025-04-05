@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vendor Application</title>
+</head>
+<body>
+  <h1>Vendor Application Form</h1>
+  <form id="applicationForm">
+    <label for="name">Name:</label>
+    <input type="text" id="name" required />
+
+    <label for="description">Description:</label>
+    <textarea id="description" required></textarea>
+
+    <label for="photoUrl">Photo URL:</label>
+    <input type="url" id="photoUrl" />
+
+    <label for="vendorType">Type:</label>
+    <input type="text" id="vendorType" required placeholder="e.g., Food, Craft" />
+
+    <label for="contactEmail">Contact Email:</label>
+    <input type="email" id="contactEmail" required />
+
+    <!-- Optionally, let them select a fair/dates -->
+    <label for="fairId">Fair ID (optional):</label>
+    <input type="number" id="fairId" />
+
+    <label for="appliedDate">Applied Date (optional):</label>
+    <input type="date" id="appliedDate" />
+
+    <button type="submit">Submit Application</button>
+  </form>
+  <div id="message"></div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://awtbjuiqgtdydsqzimul.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3dGJqdWlxZ3RkeWRzcXppbXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0OTY4MDgsImV4cCI6MjA1NzA3MjgwOH0.ES0B3O_M0dHaMHMutpkXvThMVMwIUxPqL1cvM1J2kUQ'
+    );
+    
+    document.getElementById('applicationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const photoUrl = document.getElementById('photoUrl').value.trim();
+      const vendorType = document.getElementById('vendorType').value.trim();
+      const contactEmail = document.getElementById('contactEmail').value.trim();
+      const fairId = document.getElementById('fairId').value || null;
+      const appliedDate = document.getElementById('appliedDate').value || null;
+      
+      const { data, error } = await supabase
+        .from('vendor_applications')
+        .insert([{
+          name,
+          description,
+          photo_url: photoUrl,
+          vendor_type: vendorType,
+          contact_email: contactEmail,
+          fair_id: fairId,
+          applied_date: appliedDate
+        }]);
+      
+      const msgDiv = document.getElementById('message');
+      if (error) {
+        msgDiv.textContent = "Error submitting application: " + error.message;
+        msgDiv.style.color = "red";
+      } else {
+        msgDiv.textContent = "Application submitted successfully! It is now pending review.";
+        msgDiv.style.color = "green";
+      }
+    });
+  </script>
+</body>
+</html>
